@@ -1,40 +1,43 @@
-from flask import Flask, render_template, jsonify
-app=Flask(__name__)
+from fastapi import FastAPI,Request
+from pydantic import BaseModel,Field,validator
 
-@app.route('/',methods=["POST"])
-def index():
-    return app.url_for('give_greeting', name='Mark')
+app = FastAPI()
 
-@app.route('/helloworld')
-def hello_world():
-    return "Hello world"
+class User(BaseModel):
+    id : int= None
+    username:str= Field(...,min_length=3,max_length=50)#None
+    email:str= Field (...,pattern=".") # Debe limpiarese
+    image_file:str=None
+    name:str=None
+    password :str=None
 
-@app.route('/routed')
-def hello_world_otraruta():
-    return "Hello world de otra ruta"
+    @validator("username")
+    def username_alphanumeric(cls,v):
+        if not v.isalnum():
+              print(v.isalnum())
+              raise ValueError('debe ser alfanumerico')
+        return v
+#    @validator("name")
+#    def name_alphanumeric(cls,v):
+#        pattern=r""
+#        if not v.isalnum():
+#              print(v.isalnum())
+#              raise ValueError('debe ser alfanumerico')
+#        return v
 
-@app.route('/temp')
-def hello_world_temp():
-    lista ={1,2,3,4,5}
-    return render_template("ejemplo.html",nombre="Jeremy",lista=lista)
 
-@app.route("/hello/<username>")
-def hello_user(username):
-    print(app.url_for('hello_world_otraruta', name='Mark'))
-    return "Hello {} !".format(username)
+@app.get("/")
+def read_root():
+        return {"Hello":"World"}
 
-@app.route('/greeting/<name>')
-def give_greeting(name):
-    return 'Hello, {0}!'.format(name)
-
-@app.route('/obtener_lista')
-def obtener_lista():
-    lista = [
-        {'num':1, 'visible':True},
-        {"num":2, "visible":True},
-        {"num":3, "visible":False}
-    ]
-    return jsonify(lista)
+@app.post("/user")
+async def  create_user(request:Request):
+    body: User = await request.json()
+    print(body)
+    user = User(**body)
+    print(user)
+    return {"user":user}
 
 if __name__=="__main__":
-    app.run(debug=True)
+    import uvicorn
+    uvicorn.run(app,host="127.0.0.1",port=8000)
